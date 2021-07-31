@@ -18,7 +18,15 @@ module.exports.sendMsg = async function (req){
     return results.rows;
 }
 module.exports.socketSendMsg = async function (from, to, msgContent){
-    await Messages.create({sender_id: from, receiver_id: to, content: msgContent , time: Date.now()});
+    const objMsg = await Messages.create({sender_id: from, receiver_id: to, content: msgContent , time: Date.now()});
     const objUser = await Users.findOne({where:{id_number: to}});
-    return objUser ? objUser.dataValues.token : '';
+    let result = {objMsg: {}, receiverToken: '###', senderId: from} // if token is empty string, it's equal to token when not login
+    if(objMsg){
+        result.objMsg = objMsg.dataValues
+    }
+    if(objUser){
+        result.receiverToken = objUser.dataValues.token
+    }
+    // return objUser ? objUser.dataValues.token : '';
+    return result;
 }

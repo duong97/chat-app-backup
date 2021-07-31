@@ -79,12 +79,14 @@ io.on('connection', (socket) => {
         let msgContent = data.message;
         let token = data.token;
         let tokenDecode = jwt.decode(token);
-        let senderId = tokenDecode.id;
+        let senderId = tokenDecode ? tokenDecode.id : 0;
         let receiverId = data.to;
         const msg = require('./models/msg');
-        msg.socketSendMsg(senderId, receiverId, msgContent).then((data) => {
-            io.sockets.emit('new_message', {message: msgContent, token: data})
-        });
+        if(senderId && receiverId){
+            msg.socketSendMsg(senderId, receiverId, msgContent).then((data) => {
+                io.sockets.emit('new_message', data)
+            });
+        }
 
         //broadcast the new message
         // io.sockets.emit('new_message', {message: data.message, username: socket.username});

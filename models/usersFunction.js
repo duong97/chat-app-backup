@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const posgresObj = new Client({connectionString: dbconfig.db.URL})
 const dbConfig = require('../config/db')
 const {Sequelize, Model, DataTypes} = require("sequelize");
+const {Op} = require("sequelize");
 const sequelize = new Sequelize(dbConfig.db.URL);
 const User = require('../models/users')(sequelize, DataTypes)
 
@@ -69,4 +70,24 @@ async function authUser(userExists, passwordInput) {
         return userExists.password === md5pass;
     }
     return false;
+}
+
+module.exports.searchByUsername = async function (username) {
+    const users = await User.findAll({where: {
+            username: {[Op.like]: '%'+username+'%'}
+        }});
+    let result = [];
+    let i = 0;
+    if(users){
+        // console.log(typeof users)
+        // users.every(user => {console.log(1)})
+        // console.log("All users:", JSON.stringify(users, null, 2));
+        for(let key in users){
+            if(users.hasOwnProperty(key)){
+                let user = users[key].dataValues
+                result[i++] = {id_number: user.id_number, username: user.username};
+            }
+        }
+    }
+    return result;
 }

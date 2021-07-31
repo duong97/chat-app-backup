@@ -1,36 +1,43 @@
 var express = require('express');
 var router = express.Router();
 const user = require('../models/usersFunction');
+const message = require('../models/messagesFunction');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    if (req.query.searchUsername) {
-        user.findByUsername(req.query.searchUsername, true).then((rows) => {
-            res.render('index', {title: 'Express', req: req, searchResult: rows});
+    let isRender = false;
+
+    if (Object.keys(req.query).length > 0) {
+        isRender = true;
+        hanleGetRequest(req).then(result => {
+            if (result) {
+                res.render('index', {title: 'Express', req: req, result: result});
+            } else {
+                res.redirect('/login')
+            }
         });
-    } else {
+    }
 
-        // find by normal sql
-        // const dbConfig = require('../config/db')
-        // const {Client} = require('pg')
-        // const client = new Client({connectionString: dbConfig.db.URL})
-        // client.connect();
-        // let result = client.query("select * from users", (err, res) => {
-        //     console.log(typeof res.rows)
-        // });
-
-        // find by sequelize auto v2
-        // const { Sequelize, Model, DataTypes } = require("sequelize");
-        // const sequelize = new Sequelize(dbConfig.db.URL);
-        // const User = require('../models/users')(sequelize, DataTypes)
-        // User.findAll().then((res) => {
-        //     res.every(user => {
-        //         console.log(user.dataValues)
-        //     })
-        // });
-
-        res.render('index', {title: 'Express', req: req, searchResult: {}});
+    if (!isRender) {
+        res.render('index', {title: 'Express', req: req, result: {}});
     }
 });
+
+async function hanleGetRequest(req) {
+    let reqQuery = req.query
+    let resultSearch, resultMessage = []
+    if (typeof req.session.user == 'undefined') {
+        return null;
+    }
+    if (reqQuery.searchUsername) {
+        resultSearch = await user.searchByUsername(reqQuery.searchUsername);
+    }
+
+    if (reqQuery.msgTo) {
+        resultMessage = await message.searchMsg(reqQuery.msgTo)
+    }
+
+    return {resultSearch: resultSearch, resultMessage: resultMessage}
+}
 
 module.exports = router;
