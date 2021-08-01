@@ -5,8 +5,10 @@ const message = require('../models/messagesFunction');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
+    if (req.session.user == undefined) {
+        res.redirect('/login')
+    }
     let isRender = false;
-
     if (Object.keys(req.query).length > 0) {
         isRender = true;
         hanleGetRequest(req).then(result => {
@@ -30,11 +32,11 @@ async function hanleGetRequest(req) {
         return null;
     }
     if (reqQuery.searchUsername) {
-        resultSearch = await user.searchByUsername(reqQuery.searchUsername);
+        resultSearch = await user.searchByUsername(reqQuery.searchUsername, req.session.user.id);
     }
 
     if (reqQuery.msgTo) {
-        resultMessage = await message.searchMsg(reqQuery.msgTo)
+        resultMessage = await message.searchMsg(req.session.user.id, reqQuery.msgTo)
     }
 
     return {resultSearch: resultSearch, resultMessage: resultMessage}

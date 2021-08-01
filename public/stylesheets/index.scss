@@ -30,6 +30,7 @@ body {
 .people-list {
   width: 260px;
   float: left;
+  position: relative;
 
   .search {
     padding: 20px;
@@ -52,7 +53,7 @@ body {
 
   ul {
     padding: 20px;
-    height: 770px;
+    height: 740px;
 
     li {
       padding-bottom: 20px;
@@ -76,6 +77,9 @@ body {
     color: $gray;
   }
 
+  .profile-zone{
+    margin: 6px 20px;
+  }
 }
 
 .chat {

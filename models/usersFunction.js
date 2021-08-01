@@ -72,9 +72,10 @@ async function authUser(userExists, passwordInput) {
     return false;
 }
 
-module.exports.searchByUsername = async function (username) {
+module.exports.searchByUsername = async function (username, curUserId = 0) {
     const users = await User.findAll({where: {
-            username: {[Op.like]: '%'+username+'%'}
+            username: {[Op.like]: '%'+username+'%'},
+            id_number: {[Op.not]: curUserId}
         }});
     let result = [];
     let i = 0;

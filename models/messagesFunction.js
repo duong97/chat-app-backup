@@ -1,18 +1,45 @@
 const {Client} = require('pg')
-const dbconfig = require('../config/db')
+const dbConfig = require('../config/db')
 const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
-const posgresObj = new Client({connectionString: dbconfig.db.URL})
-const dbConfig = require('../config/db')
+const client = new Client({connectionString: dbConfig.db.URL})
 const {Sequelize, Model, DataTypes} = require("sequelize");
-const { Op } = require("sequelize");
+const {Op} = require("sequelize");
 const sequelize = new Sequelize(dbConfig.db.URL);
 const Messages = require('../models/messages')(sequelize, DataTypes)
+const Users = require('../models/users')(sequelize, DataTypes)
 
-module.exports.searchMsg = async function (user_id) {
+client.connect();
+
+module.exports.searchMsg = async function (from, to) {
+    let fromOnlyNumber = typeof from == "number" ? from : from.replace(/^\D+/g, '')
+    let toOnlyNumber = typeof to == "number" ? to : to.replace(/^\D+/g, '')
+    // get info sender and receiver
+    const listUsers = await Users.findAll({
+        where: {
+            id_number: {
+                [Op.in]: [from, to]
+            }
+        }
+    });
+    let rawObjSender = {}, rawObjReceiver = {}
+    if(listUsers){
+        listUsers.forEach(itemUser => {
+            if(itemUser.dataValues.id_number==from){
+                rawObjSender = itemUser
+            } else if (itemUser.dataValues.id_number==to){
+                rawObjReceiver = itemUser
+            }
+        })
+    }
     const msgs = await Messages.findAll({
         where: {
-            [Op.or]: [{sender_id: user_id}, {receiver_id: user_id}]
+            sender_id: {
+                [Op.in]: [fromOnlyNumber, toOnlyNumber]
+            },
+            receiver_id: {
+                [Op.in]: [fromOnlyNumber, toOnlyNumber]
+            }
         },
         order: [
             ['time', 'DESC']
@@ -23,14 +50,50 @@ module.exports.searchMsg = async function (user_id) {
     let i = 0
     if (msgs) {
         // console.log(typeof user, JSON.stringify(users, null, 2));
-        for (let key in msgs) {
-            if (msgs.hasOwnProperty(key)) {
-                let msg = msgs[key].dataValues
-                let dt = new Date(parseInt(msg.time))
-                msg.readable_time = dt.toLocaleString('es-US')
-                result[i++] = msg
-            }
-        }
+        msgs.forEach(itemMsg => {
+            let userSend = itemMsg.sender_id==from ? rawObjSender : rawObjReceiver
+            result[i++] = formatObjMessageForDisplay(itemMsg, userSend)
+        })
     }
     return result.reverse();
+}
+
+module.exports.socketSendMsg = async function (from, to, msgContent) {
+    let result = {objMsg: {}, receiverToken: '###', senderId: from} // if token is empty string, it's equal to token when not login
+    const objMsg = await Messages.create({sender_id: from, receiver_id: to, content: msgContent, time: Date.now()})
+    const listUsers = await Users.findAll({
+        where: {
+            id_number: {
+                [Op.in]: [from, to]
+            }
+        }
+    });
+    let rawObjSender = {}, rawObjReceiver = {}
+    if(listUsers){
+        listUsers.forEach(itemUser => {
+            if(itemUser.dataValues.id_number==from){
+                rawObjSender = itemUser
+            } else if (itemUser.dataValues.id_number==to){
+                rawObjReceiver = itemUser
+                result.receiverToken = itemUser.dataValues.token
+            }
+        })
+    }
+    if (objMsg) {
+        result.objMsg = formatObjMessageForDisplay(objMsg, rawObjSender)
+    }
+    return result;
+}
+
+// rawObjMsg is object return by findOne function
+// format data for display in chat box
+function formatObjMessageForDisplay(rawObjMsg, rawObjSender = '') {
+    if(!rawObjMsg){
+        return {};
+    }
+    let result = rawObjMsg.dataValues
+    let dt = new Date(parseInt(result.time))
+    result.readable_time = dt.toLocaleString('es-US')
+    result.sender_display_name = rawObjSender ? rawObjSender.dataValues.username : ''
+    return result
 }

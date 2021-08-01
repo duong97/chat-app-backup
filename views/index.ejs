@@ -1,19 +1,11 @@
 <%
-let token = ''
-let isGuest = true
-let currentUserId = ''
-if (req.session.hasOwnProperty('user')) {
-    token = req.session.user.token
-    isGuest = false
-    currentUserId = req.session.user.id
-}
+let token = req.session.user.token
+let currentUserId = req.session.user.id
+let currentUsername = req.session.user.username
 let searchUsername = typeof req.query.searchUsername == 'undefined' ? '' : req.query.searchUsername
 let receiverId = typeof req.query.msgTo == 'undefined' ? '' : req.query.msgTo
 let resultSearch = typeof result.resultSearch == 'undefined' ? [] : result.resultSearch;
 let resultMessage = typeof result.resultMessage == 'undefined' ? [] : result.resultMessage;
-
-let chatUIYou = ''
-let chatUIFriend = ''
 %>
 <!DOCTYPE html>
 <html>
@@ -27,6 +19,12 @@ let chatUIFriend = ''
 
 <div class="container clearfix">
     <div class="people-list" id="people-list">
+        <div class="profile-zone">
+            <img src="/images/user-icon.png" alt="avatar"
+                 style="width: 45px; height: 45px; background: transparent; margin-right: 10px;"/>
+            @<%= currentUsername %><br>
+            #<%= currentUserId %>
+        </div>
         <div class="search">
             <form action="/" method="get">
                 <input type="text" placeholder="search username" name="searchUsername" value="<%= searchUsername %>"/>
@@ -65,16 +63,16 @@ let chatUIFriend = ''
             <i class="fa fa-star"></i>
         </div> <!-- end chat-header -->
 
-        <div class="chat-history">
+        <div class="chat-history" id="chatroom-container">
             <ul id="chatroom">
                 <% if(resultMessage.length > 0){ %>
                     <% resultMessage.forEach((msg) => { %>
-                        <% if(msg.receiver_id == receiverId){ %>
-                            <!-- receiver messages -->
-                            <%- renderChatUIYourFriend(msg) %>
-                        <% } else { %>
+                        <% if(msg.sender_id == currentUserId){ %>
                             <!-- you <=> sender messages -->
                             <%- renderChatUIYou(msg) %>
+                        <% } else { %>
+                            <!-- receiver messages -->
+                            <%- renderChatUIYourFriend(msg) %>
                         <% } %>
                     <% }) %>
                 <% } %>
@@ -98,38 +96,6 @@ let chatUIFriend = ''
                 <!--                    <div class="message my-message">-->
                 <!--                        Are we meeting today? Project has been already finished and I have results to show you.-->
                 <!--                    </div>-->
-                <!--                </li>-->
-
-                <!--                <li class="clearfix">-->
-                <!--                    <div class="message-data align-right">-->
-                <!--                        <span class="message-data-time">10:14 AM, Today</span> &nbsp; &nbsp;-->
-                <!--                        <span class="message-data-name">Olia</span> <i class="fa fa-circle me"></i>-->
-
-                <!--                    </div>-->
-                <!--                    <div class="message other-message float-right">-->
-                <!--                        Well I am not sure. The rest of the team is not here yet. Maybe in an hour or so? Have you faced-->
-                <!--                        any problems at the last phase of the project?-->
-                <!--                    </div>-->
-                <!--                </li>-->
-
-                <!--                <li>-->
-                <!--                    <div class="message-data">-->
-                <!--                        <span class="message-data-name"><i class="fa fa-circle online"></i> Vincent</span>-->
-                <!--                        <span class="message-data-time">10:20 AM, Today</span>-->
-                <!--                    </div>-->
-                <!--                    <div class="message my-message">-->
-                <!--                        Actually everything was fine. I'm very excited to show this to our team.-->
-                <!--                    </div>-->
-                <!--                </li>-->
-
-                <!--                <li>-->
-                <!--                    <div class="message-data">-->
-                <!--                        <span class="message-data-name"><i class="fa fa-circle online"></i> Vincent</span>-->
-                <!--                        <span class="message-data-time">10:31 AM, Today</span>-->
-                <!--                    </div>-->
-                <!--                    <i class="fa fa-circle online"></i>-->
-                <!--                    <i class="fa fa-circle online" style="color: #AED2A6"></i>-->
-                <!--                    <i class="fa fa-circle online" style="color:#DAE9DA"></i>-->
                 <!--                </li>-->
 
             </ul>
@@ -186,12 +152,13 @@ renderChatUIYourFriend = function (objMsg) {
     return renderChatUI(objMsg, isYou);
 }
 renderChatUI = function (objMsg, isYou = true) {
+    console.log(objMsg)
     if (isYou) {
         let result = '<li class="clearfix">'
         result += '<div class="message-data align-right">'
         result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
         result += '<span class="message-data-name">'
-        result += '<i class="fa fa-circle me"></i> Vincent</span>'
+        result += '<i class="fa fa-circle me"></i> ' + objMsg.sender_display_name + '</span>'
         result += '</span>'
         result += '</div>'
         result += '<div class="message other-message float-right">' + objMsg.content + '</div>'
@@ -201,7 +168,7 @@ renderChatUI = function (objMsg, isYou = true) {
         let result = '<li>'
         result += '<div class="message-data">'
         result += '<span class="message-data-name">'
-        result += '<i class="fa fa-circle online"></i> Vincent</span>'
+        result += '<i class="fa fa-circle online"></i> ' + objMsg.sender_display_name + '</span>'
         result += '</span>'
         result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
         result += '</div>'
@@ -212,6 +179,34 @@ renderChatUI = function (objMsg, isYou = true) {
     return ''
 }
 %>
+<script>
+    renderChatUI = function (objMsg, isYou = true) {
+        if (isYou) {
+            let result = '<li class="clearfix">'
+            result += '<div class="message-data align-right">'
+            result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
+            result += '<span class="message-data-name">'
+            result += '<i class="fa fa-circle me"></i> ' + objMsg.sender_display_name + '</span>'
+            result += '</span>'
+            result += '</div>'
+            result += '<div class="message other-message float-right">' + objMsg.content + '</div>'
+            result += '</li>'
+            return result
+        } else {
+            let result = '<li>'
+            result += '<div class="message-data">'
+            result += '<span class="message-data-name">'
+            result += '<i class="fa fa-circle online"></i> ' + objMsg.sender_display_name + '</span>'
+            result += '</span>'
+            result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
+            result += '</div>'
+            result += '<div class="message my-message">' + objMsg.content + '</div>'
+            result += '</li>'
+            return result
+        }
+        return ''
+    }
+</script>
 <script src="http://code.jquery.com/jquery-latest.min.js"></script>
 <script>
     $(function () {
@@ -219,11 +214,12 @@ renderChatUI = function (objMsg, isYou = true) {
         var socket = io.connect('http://localhost:3000')
 
         //buttons and inputs
-        var message = $("#message-to-send")
-        var send_message = $("#send_message")
-        var chatroom = $("#chatroom")
-        var token = '<%= token %>'
-        var currentUserId = '<%= currentUserId %>'
+        let message = $("#message-to-send")
+        let send_message = $("#send_message")
+        let chatroom = $("#chatroom")
+        let token = '<%= token %>'
+        let currentUserId = '<%= currentUserId %>'
+        chatScrollBottom()
 
         //Emit message
         send_message.click(function () {
@@ -235,9 +231,11 @@ renderChatUI = function (objMsg, isYou = true) {
             message.val('')
             if (data.receiverToken == token) {
                 chatroom.append(renderChatUI(data.objMsg, false))
+                chatScrollBottom()
             }
             if (data.senderId == currentUserId) {
                 chatroom.append(renderChatUI(data.objMsg))
+                chatScrollBottom()
             }
         })
 
@@ -246,32 +244,22 @@ renderChatUI = function (objMsg, isYou = true) {
             socket.emit('typing')
         })
 
+        enterToSendMsg()
     });
 
-    renderChatUI = function (objMsg, isYou = true) {
-        if (isYou) {
-            let result = '<li class="clearfix">'
-            result += '<div class="message-data align-right">'
-            result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
-            result += '<span class="message-data-name">'
-            result += '<i class="fa fa-circle me"></i> Vincent</span>'
-            result += '</span>'
-            result += '</div>'
-            result += '<div class="message other-message float-right">' + objMsg.content + '</div>'
-            result += '</li>'
-            return result
-        } else {
-            let result = '<li>'
-            result += '<div class="message-data">'
-            result += '<span class="message-data-name">'
-            result += '<i class="fa fa-circle online"></i> Vincent</span>'
-            result += '</span>'
-            result += '<span class="message-data-time">' + objMsg.readable_time + '</span>'
-            result += '</div>'
-            result += '<div class="message my-message">' + objMsg.content + '</div>'
-            result += '</li>'
-            return result
-        }
-        return ''
+    function chatScrollBottom() {
+        let chatroomContainer = $("#chatroom-container")
+        chatroomContainer.animate({
+            scrollTop: chatroomContainer[0].scrollHeight
+        }, 300)
+    }
+
+    // send message when press enter
+    function enterToSendMsg(){
+        $(document).on('keypress', '#message-to-send', function (e){
+            if(e.keyCode==13){
+                $('#send_message').click()
+            }
+        })
     }
 </script>

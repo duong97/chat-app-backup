@@ -64,6 +64,7 @@ const io = new Server(server, {
 
 const jwt = require('jsonwebtoken')
 const userFunc = require('./models/usersFunction')
+const msgFunc = require('./models/messagesFunction');
 
 let allClients = [];
 //listen on every connection
@@ -81,9 +82,8 @@ io.on('connection', (socket) => {
         let tokenDecode = jwt.decode(token);
         let senderId = tokenDecode ? tokenDecode.id : 0;
         let receiverId = data.to;
-        const msg = require('./models/msg');
         if(senderId && receiverId){
-            msg.socketSendMsg(senderId, receiverId, msgContent).then((data) => {
+            msgFunc.socketSendMsg(senderId, receiverId, msgContent).then((data) => {
                 io.sockets.emit('new_message', data)
             });
         }

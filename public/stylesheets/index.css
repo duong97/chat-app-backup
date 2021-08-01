@@ -24,6 +24,7 @@ body {
 .people-list {
   width: 260px;
   float: left;
+  position: relative;
 }
 .people-list .search {
   padding: 20px;
@@ -42,7 +43,7 @@ body {
 }
 .people-list ul {
   padding: 20px;
-  height: 770px;
+  height: 740px;
 }
 .people-list ul li {
   padding-bottom: 20px;
@@ -59,6 +60,9 @@ body {
 }
 .people-list .status {
   color: #92959E;
+}
+.people-list .profile-zone {
+  margin: 6px 20px;
 }
 
 .chat {
